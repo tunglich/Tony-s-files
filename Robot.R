@@ -10,6 +10,9 @@ library(lubridate)
 library(readxl)
 library(ggplot2)
 
+windowsFont(BL = windowsFont('·L³n¥¿¶ÂÅé'))
+
+
 #function: convert data type of char to double but keep Date as char, then tranform to xts object
 
 csv2xts <- function(x){
