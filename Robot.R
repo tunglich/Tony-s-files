@@ -38,12 +38,18 @@ index_all <- csv2xts(index_all)
 Nomura_Return_All <- Nomura_Return_All / 100
 index_all <- index_all / 100
 
-#function: calculate cumulative 
+#function: calculate cumulative return
 cumReturn <- function(x, start_date = "2006-12-29", end_date = "2017-10-31") {
     period <- paste0(start_date, "/", end_date)
     result <- Return.cumulative(x[period, ], geometric = TRUE)
     return(result)
-    }
+}
 
+#function: calculate annulized return
+annReturn <- function(x, start_date = "2006-12-29", end_date = "2017-10-31" ) {
+    period <- paste0(start_date, "/", end_date)
+    result <- Return.annualized(x[period,], geometric = TRUE)
+    return(result)
+}
 
 
