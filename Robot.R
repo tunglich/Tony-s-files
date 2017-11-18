@@ -31,7 +31,7 @@ Nomura_Return_All <- csv2xts(Nomura_Return_All)
 Nomura_Shape <- csv2xts(Nomura_Shape)
 index_all <- csv2xts(index_all)
 
-#covert numeric return to % return
+#covert % return to numeric return
 Nomura_Return_All <- Nomura_Return_All / 100
 index_all <- index_all / 100
 
