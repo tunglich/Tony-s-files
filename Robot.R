@@ -76,3 +76,16 @@ periodReturn <- function(x, frequency = "monthly"){
     result <- eval(parse(text = period))
     return(result)
 }
+
+# function: calculate up-to-date periodical return
+# default period: 3 months
+# unit of time: month
+# example: past-6-month return >> histPerform(x, monthly_period = 6)
+
+histPerform <- function(x, monthly_period = 3) {
+    date <- as.POSIXlt(as.Date("2017-10-31"))
+    date$mon <- date$mon - monthly_period
+    result <-  cumReturn(x, start_date = date, end_date = end_date)
+    return(result)
+    
+}
