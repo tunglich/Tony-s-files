@@ -14,7 +14,7 @@ library(ggplot2)
 
 # Set Chinese font family
 
-windowsFont(BL = windowsFont('微軟正黑體'))
+windowsFonts(BL = windowsFont('微軟正黑體'))
 
 
 # function: convert data type of char to double but keep Date as char, then tranform to xts object
