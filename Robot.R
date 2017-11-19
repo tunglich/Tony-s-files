@@ -1,4 +1,6 @@
-#Robot advisor project
+# Robot advisor project
+
+# import libraries
 
 library(zoo)
 library(xts)
@@ -9,6 +11,8 @@ library(readr)
 library(lubridate)
 library(readxl)
 library(ggplot2)
+
+# Set Chinese font family
 
 windowsFont(BL = windowsFont('·L³n¥¿¶ÂÅé'))
 
