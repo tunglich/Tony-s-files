@@ -102,3 +102,10 @@ fofReturn <- function(x, weights, rebalance_on = NA){
                                verbose = TRUE)
     return(result)
 }
+
+# function: output a table of one asset's return by Calendar year and month
+
+tableReturn <- function(x) {
+    result <- table.CalendarReturns(x, as.perc = TRUE, geometric = TRUE)
+    return(result)
+}
