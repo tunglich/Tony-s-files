@@ -89,3 +89,16 @@ histPerform <- function(x, monthly_period = 3) {
     return(result)
     
 }
+
+# function: calculate the portfolio returns of a fund of funds
+# default rebalance_on = NA, or "years", "quarters", "months", "weeks", "days"
+# portfolio return is calculated within the same period of time
+# weights: a vector. ex: c(0.5, 0.5)
+# verbose parameters: returns, contribution, EOP.Weight, BOP.Weight
+#                     BOP.Value, EOP.Value (End of Period, Beginning of Period)
+
+fofReturn <- function(x, weights, rebalance_on = NA){
+    result <- Return.portfolio(x, weights = weights, rebalance_on  = rebalance_on,
+                               verbose = TRUE)
+    return(result)
+}
