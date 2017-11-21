@@ -12,6 +12,7 @@ library(lubridate)
 library(readxl)
 library(ggplot2)
 
+
 # Set Chinese font family
 
 windowsFonts(BL = windowsFont('·L³n¥¿¶ÂÅé'))
@@ -108,5 +109,21 @@ fofReturn <- function(x, weights, rebalance_on = NA){
 
 tableReturn <- function(x) {
     result <- table.CalendarReturns(x, as.perc = TRUE, geometric = TRUE)
+    return(result)
+}
+
+# function: find out top n funds in terms of sharp ratio in a given period
+# currentDate: current date as the end of period
+# backperiod_M: # of months of back testing
+# n_ranks: top n funds to be selected
+# the result will be a 1 X n dataframe
+
+findBestSharp_mean <- function(currentDate, backperiod_M, n_ranks) {
+    date_back <- as.POSIXlt(as.Date(currentDate))
+    date_back$mon <- date_back$mon - backperiod_M
+    period <- paste0(as.character(date_back), "/", as.character(currentDate))
+    result <- sort(colMeans(Nomura_Shape[period]), decreasing = TRUE)
+    result <- as.data.frame(t(result))
+    result <- result[,1:n_ranks]
     return(result)
 }
