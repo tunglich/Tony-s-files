@@ -27,6 +27,7 @@ data2xts <- function(x){
   Date_temp <- as.Date(Date_temp)
   rownames(x) <- Date_temp
   x <- as.xts(x)
+  x <- na.fill(x, 0)
   return(x)
     
   }
@@ -40,7 +41,7 @@ Nomura_Shape <- read_excel("C:/Users/tungl/OneDrive/文件/GitHub/Nomura-TW-fund/N
 index_all <- read_excel("C:/Users/tungl/OneDrive/文件/GitHub/Nomura-TW-fund/index-1.xlsx"
                                 , sheet = 1, col_names = TRUE)
 
-# call fuction to convert to xts object
+# call fuction to convert to xts object and set NA = 0
 
 Nomura_Return_All <- data2xts(Nomura_Return_All)
 Nomura_Shape <- data2xts(Nomura_Shape)
