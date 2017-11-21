@@ -112,7 +112,7 @@ tableReturn <- function(x) {
     return(result)
 }
 
-# function: find out top n funds in terms of sharp ratio in a given period
+# function: find out top n funds in terms of the mean of sharp ratio in a given period
 # currentDate: current date as the end of period
 # backperiod_M: # of months of back testing
 # n_ranks: top n funds to be selected
