@@ -84,9 +84,9 @@ periodReturn <- function(x, frequency = "monthly"){
 # unit of time: month
 # example: past-6-month return >> histPerform(x, monthly_period = 6)
 
-histPerform <- function(x, monthly_period = 3) {
+histPerform <- function(x, backPeriod_m = 3) {
     date <- as.POSIXlt(as.Date("2017-10-31"))
-    start_date <- date %m-% months(monthly_period)
+    start_date <- date %m-% months(backPeriod_m)
     result <-  cumReturn(x, start_date = start_date, end_date = date)
     return(result)
     
@@ -114,13 +114,13 @@ tableReturn <- function(x) {
 
 # function: find out top n funds in terms of the mean of sharp ratio in a given period
 # currentDate: current date as the end of period
-# backperiod_M: # of months of back testing
+# backPeriod_M: # of months of back testing
 # n_ranks: top n funds to be selected
 # the result will be a 1 X n dataframe
 
-findBestSharp_mean <- function(currentDate, backperiod_M, n_ranks) {
+findBestSharp_mean <- function(currentDate, backPeriod_M, n_ranks) {
     date_back <- as.POSIXlt(as.Date(currentDate))
-    date_back$mon <- date_back$mon - backperiod_M
+    date_back <- date_back %m-% months(backPeriod_M)
     period <- paste0(as.character(date_back), "/", as.character(currentDate))
     result <- sort(colMeans(Nomura_Shape[period]), decreasing = TRUE)
     result <- as.data.frame(t(result))
