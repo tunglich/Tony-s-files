@@ -1,285 +1,151 @@
-paramNames <- c("start_capital", "annual_mean_return", "annual_ret_std_dev",
-                
-                "annual_inflation", "annual_inf_std_dev", "monthly_withdrawals", "n_obs",
-                
-                "n_sim")
+library(readr)
+library(ggplot2)
+library(stringr)
+library(dplyr)
+library(DT)
+library(tools)
+library(zoo)
+library(xts)
+library(dplyr)
+library(quantmod)
+library(PerformanceAnalytics)
+library(lubridate)
+library(readxl)
 
 
+# Set Chinese font family
 
-simulate_nav <- function(start_capital = 2000000, annual_mean_return = 5.0,
-                         
-                         annual_ret_std_dev = 7.0, annual_inflation = 2.5,
-                         
-                         annual_inf_std_dev = 1.5, monthly_withdrawals = 10000,
-                         
-                         n_obs = 20, n_sim = 50) {
-  
-  #-------------------------------------
-  
-  # Inputs
-  
-  #-------------------------------------
-  
-  
-  
-  # Initial capital
-  
-  start.capital = start_capital
-  
-  
-  
-  # Investment
-  
-  annual.mean.return = annual_mean_return / 100
-  
-  annual.ret.std.dev = annual_ret_std_dev / 100
-  
-  
-  
-  # Inflation
-  
-  annual.inflation = annual_inflation / 100
-  
-  annual.inf.std.dev = annual_inf_std_dev / 100
-  
-  
-  
-  # Withdrawals
-  
-  monthly.withdrawals = monthly_withdrawals
-  
-  
-  
-  # Number of observations (in Years)
-  
-  n.obs = n_obs
-  
-  
-  
-  # Number of simulations
-  
-  n.sim = n_sim
-  
-  
-  
-  
-  
-  #-------------------------------------
-  
-  # Simulation
-  
-  #-------------------------------------
-  
-  
-  
-  # number of months to simulate
-  
-  n.obs = 12 * n.obs
-  
-  
-  
-  # monthly Investment and Inflation assumptions
-  
-  monthly.mean.return = annual.mean.return / 12
-  
-  monthly.ret.std.dev = annual.ret.std.dev / sqrt(12)
-  
-  
-  
-  monthly.inflation = annual.inflation / 12
-  
-  monthly.inf.std.dev = annual.inf.std.dev / sqrt(12)
-  
-  
-  
-  # simulate Returns
-  
-  monthly.invest.returns = matrix(0, n.obs, n.sim)
-  
-  monthly.inflation.returns = matrix(0, n.obs, n.sim)
-  
-  
-  
-  monthly.invest.returns[] = rnorm(n.obs * n.sim, mean = monthly.mean.return, sd = monthly.ret.std.dev)
-  
-  monthly.inflation.returns[] = rnorm(n.obs * n.sim, mean = monthly.inflation, sd = monthly.inf.std.dev)
-  
-  
-  
-  # simulate Withdrawals
-  
-  nav = matrix(start.capital, n.obs + 1, n.sim)
-  
-  for (j in 1:n.obs) {
-    
-    nav[j + 1, ] = nav[j, ] * (1 + monthly.invest.returns[j, ] - monthly.inflation.returns[j, ]) - monthly.withdrawals
-    
-  }
-  
-  
-  
-  # once nav is below 0 => run out of money
-  
-  nav[ nav < 0 ] = NA
-  
-  
-  
-  # convert to millions
-  
-  nav = nav / 1000000
-  
-  
-  
-  return(nav)
+
+# function: convert data type of char to double but keep Date as char, then tranform to xts object
+
+data2xts <- function(x){
+  Date_temp <- x$Date
+  x$Date <- NULL
+  x <- sapply(x, as.numeric)
+  x <- as.data.frame(x)
+  Date_temp <- as.Date(Date_temp)
+  rownames(x) <- Date_temp
+  x <- as.xts(x)
+  x <- na.fill(x, 0)
+  return(x)
   
 }
 
+# loading data from Nomura funds
 
+Nomura_Return_All <- read_excel("./data/Nomura_Return_All-1.xlsx"
+                                ,  col_names = TRUE)
+Nomura_Shape <- read_excel("./data/Nomura_Sharp-1.xlsx"
+                           , sheet = 1, col_names = TRUE)
+index_all <- read_excel("./data/index-1.xlsx"
+                        , sheet = 1, col_names = TRUE)
 
-plot_nav <- function(nav) {
-  
-  
-  
-  layout(matrix(c(1,2,1,3),2,2))
-  
-  
-  
-  palette(c("black", "grey50", "grey30", "grey70", "#d9230f"))
-  
-  
-  
-  # plot all scenarios
-  
-  matplot(nav,
-          
-          type = 'l', lwd = 0.5, lty = 1, col = 1:5,
-          
-          xlab = 'Months', ylab = 'Millions',
-          
-          main = 'Projected Value of Initial Capital')
-  
-  
-  
-  # plot % of scenarios that are still paying
-  
-  p.alive = 1 - rowSums(is.na(nav)) / ncol(nav)
-  
-  
-  
-  plot(100 * p.alive, las = 1, xlab = 'Months', ylab = 'Percentage Paying',
-       
-       main = 'Percentage of Paying Scenarios', ylim=c(0,100))
-  
-  grid()
-  
-  
-  
-  
-  
-  last.period = nrow(nav)
-  
-  
-  
-  # plot distribution of final wealth
-  
-  final.nav = nav[last.period, ]
-  
-  final.nav = final.nav[!is.na(final.nav)]
-  
-  
-  
-  if(length(final.nav) ==  0) return()
-  
-  
-  
-  plot(density(final.nav, from=0, to=max(final.nav)), las = 1, xlab = 'Final Capital',
-       
-       main = paste0('Distribution of Final Capital\n', 100 * p.alive[last.period], '% are still paying'))
-  
-  grid()
+# call fuction to convert to xts object and set NA = 0
+
+Nomura_Return_All <- data2xts(Nomura_Return_All)
+Nomura_Shape <- data2xts(Nomura_Shape)
+index_all <- data2xts(index_all)
+
+# covert % return to numeric return
+
+Nomura_Return_All <- Nomura_Return_All / 100
+index_all <- index_all / 100
+
+# function: calculate cumulative return
+
+cumReturn <- function(x, start_date = "2006-12-29", end_date = "2017-10-31") {
+  period <- paste0(start_date, "/", end_date)
+  result <- Return.cumulative(x[period, ], geometric = TRUE)
+  return(result)
+}
+
+# function: calculate annulized return
+
+annReturn <- function(x, start_date = "2006-12-29", end_date = "2017-10-31" ) {
+  period <- paste0(start_date, "/", end_date)
+  result <- Return.annualized(x[period,], geometric = TRUE)
+  return(result)
+}
+
+# function: calculate periodical return
+# default frequency: "monthly"
+# alternative frequency: "weekly", quarterly", "yearly"
+
+periodReturn <- function(x, frequency = "monthly"){
+  period = paste0("apply.",frequency,"(x, cumReturn)")
+  result <- eval(parse(text = period))
+  return(result)
+}
+
+# function: calculate up-to-date periodical return
+# default period: 3 months
+# unit of time: month
+# example: past-6-month return >> histPerform(x, monthly_period = 6)
+
+histPerform <- function(x, backPeriod_m = 3) {
+  date <- as.POSIXlt(as.Date("2017-10-31"))
+  start_date <- date %m-% months(backPeriod_m)
+  result <-  cumReturn(x, start_date = start_date, end_date = date)
+  return(result)
   
 }
 
+# function: calculate the portfolio returns of a fund of funds
+# default rebalance_on = NA, or "years", "quarters", "months", "weeks", "days"
+# portfolio return is calculated within the same period of time
+# weights: a vector. ex: c(0.5, 0.5)
+# verbose parameters: returns, contribution, EOP.Weight, BOP.Weight
+#                     BOP.Value, EOP.Value (End of Period, Beginning of Period)
 
+fofReturn <- function(x, weights, rebalance_on = NA){
+  result <- Return.portfolio(x, weights = weights, rebalance_on  = rebalance_on,
+                             verbose = TRUE)
+  return(result)
+}
 
-# Define server logic required to generate and plot a random distribution
+# function: output a table of one asset's return by Calendar year and month
 
-#
+tableReturn <- function(x) {
+  result <- table.CalendarReturns(x, as.perc = TRUE, geometric = TRUE)
+  return(result)
+}
 
-# Idea and original code by Pierre Chretien
+# function: find out top n funds in terms of the mean of sharp ratio in a given period
+# currentDate: current date as the end of period
+# backPeriod_M: # of months of back testing
+# n_ranks: top n funds to be selected
+# the result will be a 1 X n dataframe
 
-# Small updates by Michael Kapler
+findBestSharp_mean <- function(currentDate, backPeriod_M, n_ranks) {
+  date_back <- as.POSIXlt(as.Date(currentDate))
+  date_back <- date_back %m-% months(backPeriod_M)
+  period <- paste0(as.character(date_back), "/", as.character(currentDate))
+  result <- sort(colMeans(Nomura_Shape[period]), decreasing = TRUE)
+  result <- as.data.frame(t(result))
+  result <- result[,1:n_ranks]
+  return(result)
+}
 
-#
+min_date <- index(Nomura_Return_All[1])
+max_date <- index(Nomura_Return_All[length(index(Nomura_Return_All))])
 
-function(input, output, session) {
-  
-  
-  
-  getParams <- function(prefix) {
-    
-    input[[paste0(prefix, "_recalc")]]
-    
-    
-    
-    params <- lapply(paramNames, function(p) {
-      
-      input[[paste0(prefix, "_", p)]]
-      
-    })
-    
-    names(params) <- paramNames
-    
-    params
-    
-  }
-  
-  
-  
-  # Function that generates scenarios and computes NAV. The expression
-  
-  # is wrapped in a call to reactive to indicate that:
-  
-  #
-  
-  #  1) It is "reactive" and therefore should be automatically
-  
-  #     re-executed when inputs change
-  
-  #
-  
-  navA <- reactive(do.call(simulate_nav, getParams("a")))
-  
-  navB <- reactive(do.call(simulate_nav, getParams("b")))
-  
-  
-  
-  # Expression that plot NAV paths. The expression
-  
-  # is wrapped in a call to renderPlot to indicate that:
-  
-  #
-  
-  #  1) It is "reactive" and therefore should be automatically
-  
-  #     re-executed when inputs change
-  
-  #  2) Its output type is a plot
-  
-  #
-  
-  output$a_distPlot <- renderPlot({
-    
-    plot_nav(navA())
-    
+server <- function(input, output) {
+
+  output$perChart <- renderPlot({
+    subset_date <- paste0(input$date[1], "/", input$date[2])
+    req(input$n_rank)
+    funds_selected_date <- Nomura_Return_All[subset_date, 1:input$n_rank] 
+    chart.CumReturns(funds_selected_date, main = "Cumulative Return", colorset = 1:dim(funds_selected_date)[2])
   })
-  
-  output$b_distPlot <- renderPlot({
-    
-    plot_nav(navB())
-    
+  output$cumR <- renderPlot({
+    cumR <- cumReturn(Nomura_Return_All, input$date[1], input$date[2])
+    cumR <- sort(colMeans(cumR), decreasing = TRUE)
+    fund_names <- names(cumR)
+    unname(cumR)
+    cumR <- data.frame(culative_return = cumR, fund_names = factor(fund_names, level = unique(fund_names)) , row.names = NULL)
+    ggplot(cumR[1:10,], aes(x = fund_names, y = culative_return, fill = fund_names
+                           )) + geom_col() + theme(legend.position = "none") + scale_fill_hue(c = 40)
+                            
   })
-  
-  
-  
 }
+

@@ -1,99 +1,52 @@
+
+# Robot advisor project
+
+# import libraries
+
+library(shinythemes)
 library(shiny)
 
-
-
-renderInputs <- function(prefix) {
-  
-  wellPanel(
-    
-    fluidRow(
-      
-      column(6,
-             
-             sliderInput(paste0(prefix, "_", "n_obs"), "Number of observations (in Years):", min = 0, max = 40, value = 20),
-             
-             sliderInput(paste0(prefix, "_", "start_capital"), "Initial capital invested :", min = 100000, max = 10000000, value = 2000000, step = 100000, pre = "$", sep = ","),
-             
-             sliderInput(paste0(prefix, "_", "annual_mean_return"), "Annual investment return (in %):", min = 0.0, max = 30.0, value = 5.0, step = 0.5),
-             
-             sliderInput(paste0(prefix, "_", "annual_ret_std_dev"), "Annual investment volatility (in %):", min = 0.0, max = 25.0, value = 7.0, step = 0.1)
-             
-      ),
-      
-      column(6,
-             
-             sliderInput(paste0(prefix, "_", "annual_inflation"), "Annual inflation (in %):", min = 0, max = 20, value = 2.5, step = 0.1),
-             
-             sliderInput(paste0(prefix, "_", "annual_inf_std_dev"), "Annual inflation volatility. (in %):", min = 0.0, max = 5.0, value = 1.5, step = 0.05),
-             
-             sliderInput(paste0(prefix, "_", "monthly_withdrawals"), "Monthly capital withdrawals:", min = 1000, max = 100000, value = 10000, step = 1000, pre = "$", sep = ","),
-             
-             sliderInput(paste0(prefix, "_", "n_sim"), "Number of simulations:", min = 0, max = 2000, value = 50)
-             
-      )
-      
-    ),
-    
-    p(actionButton(paste0(prefix, "_", "recalc"),
-                   
-                   "Re-run simulation", icon("random")
-                   
-    ))
-    
-  )
-  
-}
-
-
-
-# Define UI for application that plots random distributions
-
-fluidPage(theme="simplex.min.css",
-          
-          tags$style(type="text/css",
-                     
-                     "label {font-size: 12px;}",
-                     
-                     ".recalculating {opacity: 1.0;}"
-                     
-          ),
-          
-          
-          
-        
-          
-          
-          
-          fluidRow(
-            
-            column(6, tags$h3("Scenario A")),
-            
-            column(6, tags$h3("Scenario B"))
-            
-          ),
-          
-          fluidRow(
-            
-            column(6, renderInputs("a")),
-            
-            column(6, renderInputs("b"))
-            
-          ),
-          
-          fluidRow(
-            
-            column(6,
-                   
-                   plotOutput("a_distPlot", height = "600px")
-                   
-            ),
-            
-            column(6,
-                   
-                   plotOutput("b_distPlot", height = "600px")
-                   
-            )
-            
-          )
-          
+ui <- fluidPage(theme = shinytheme("cerulean"),
+                titlePanel("Nomura Funds Performance", windowTitle = "Nomura"),
+                #sidebar layout with a input and output definitions                
+                sidebarLayout(
+                  sidebarPanel(
+                    h3("Performance Plotting"),
+                    HTML(paste0("Funds selected between the following dates will be plotted,
+                                Pick dates between:  <br/> ",
+                                tags$b(min_date), " and " , tags$b(max_date), ".")),
+                    br(), br(),
+                    dateRangeInput(inputId = "date",
+                                   label = h4("Select dates:"),
+                                   start = "2006-12-29", end = "2017-10-31",
+                                   min = "2006-12-29", max = "2017-10-31",
+                                   startview = "month"),
+                    numericInput(inputId = "n_rank", 
+                                 label = h4("Number of funds to be plotted:"), 
+                                 br(),
+                                 min = 1, max = 10, 
+                                 value = 5)
+                    
+                  ),
+                  
+                  mainPanel(
+                    tabsetPanel(id = "tabspanel", type = "tabs",
+                                tabPanel(title = "Performance Chart", 
+                                         plotOutput(outputId = "perChart"),
+                                         br(),
+                                         h4(uiOutput(outputId = "n"))),
+                                tabPanel(title = "Return/Std", 
+                                         br(),
+                                         plotOutput(outputId = "rStd")),
+                                # New tab panel for Codebook
+                                tabPanel(title = "Top 10 Cumulative Return", 
+                                         br(),
+                                         plotOutput(outputId = "cumR"))
+                    ) 
+                  )
+                  
+                  
+                  
+                  
+                    )
 )
