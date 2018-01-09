@@ -200,16 +200,15 @@ ui <- tagList(
                     radioButtons(inputId = "equityType",
                                        label = h4("Equity: "),
                                        choices = c("All On-Shore Equity Funds" = 1, "All Off-Shore Equity Funds" = 2,
-                                                   "All Equity Funds" = 3),
+                                                   "All Equity Funds" = 3, "Multiple Selections" = 4),
                                                   selected = 1),
-                    
-
-                    
-                    selectInput(inputId = "equitySelected", 
+                    conditionalPanel("input.equityType == 4",
+                      selectInput(inputId = "equitySelected", 
                                  label = h4("Select Multiple Funds:"), 
-                                 choices = allEquity, multiple = TRUE)
-                    )
-                    )
+                                 choices = allEquity, multiple = TRUE, selected = allEquity[1]))
+                    
+                    ) 
+                  )
                   ),
                   tabPanel("Fixed Income Funds",
                       sidebarPanel(

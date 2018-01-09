@@ -4,32 +4,39 @@ server <- function(input, output, session) {
   subset_date <- reactive({
     paste0(input$date[1], "/", input$date[2])
   })
+
   
-  
-  equity_selected <- reactive({
-    req(input$equitySelected)
-    input$equitySelected
-  })
-  
+  equity_selected <- eventReactive(input$equityType, {
+    req(input$equityType)
+    if(input$equityType == 1){
+    equity_ons}
+    else if (input$equityType == 2) {
+    equity_offs} 
+    else if (input$equityType == 3) {
+    allEquity}
+    else {input$equitySelected}
+    })
+   
 
 
   output$perChart <- renderHighchart({
-    req(input$equitySelected)
     funds_selected_date_return <- Nomura_Return_All[subset_date(), equity_selected()] 
     funds_selected_date_price <-  (cumprod((1+funds_selected_date_return)) - 1) * 100 
+     
     hc <-highchart(type = "stock")
     for (i in 1:length(equity_selected())){
      hc<- hc %>% hc_add_series(funds_selected_date_price[,i], name = colnames(funds_selected_date_price[,i]))
     }
     
     hc %>% hc_yAxis(labels = list(format = "{value}%"))
-                      
+                    
       
   })
   
+  
+  
   output$rStd <- renderHighchart({
-    
-    req(input$equitySelected)
+    req(input$equityType)
     funds_selected_date <- Nomura_Return_All[subset_date(), equity_selected()]
     a_Return <- annReturn(funds_selected_date)
     a_Std <- annStd(funds_selected_date)
@@ -52,14 +59,14 @@ server <- function(input, output, session) {
   })
   
   output$cumR <- renderHighchart({
-    req(input$equitySelected)
+    req(input$equityType)
     cumR <- cumReturn(Nomura_Return_All[, equity_selected()], input$date[1], input$date[2])
     cumR <- sort(colMeans(cumR), decreasing = TRUE)
     fund_names <- names(cumR)
     unname(cumR)
     cumR <- data.frame(culative_return = cumR, fund_names = factor(fund_names, level = unique(fund_names)) , row.names = NULL)
     highchart() %>%
-      hc_add_series(cumR[1:n_sample(),], type = "column", hcaes(x = fund_names, y = culative_return * 100,
+      hc_add_series(cumR[1:length(equity_selected()),], type = "column", hcaes(x = fund_names, y = culative_return * 100,
                                                         color = fund_names)) %>% 
       hc_xAxis(title = list(text = 'Selected Funds')) %>% 
       hc_legend(enabled = FALSE) %>%
