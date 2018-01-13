@@ -322,11 +322,23 @@ ui <- tagList(
                                            choices = otherType, multiple = TRUE, selected = otherType[1]))
                            
                                
+                  ),
+                  mainPanel(tabsetPanel(id = "tabspanel3", type = "tabs",
+                                        tabPanel(title = "Cumulative Performance", 
+                                                 highchartOutput(outputId = "perChart3")),
+                                        tabPanel(title = "Return-Risk",
+                                                 highchartOutput(outputId = "rStd3")),
+                                        # New tab panel for Codebook
+                                        tabPanel(title = "Cumulative Return Ranks",
+                                                 highchartOutput(outputId = "cumR3"))
+                  ) 
+                  
                   )
                   )
                  
-                  )
+                
                   
+                )   
               
                                   
 )
