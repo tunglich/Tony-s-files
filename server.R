@@ -40,7 +40,10 @@ server <- function(input, output, session) {
 
  
   
-  
+  observe({
+    if(input$equityType == 4){
+      equity_selected <- reactive(input$equitySelected)
+    }
   
   output$rStd <- renderHighchart({
     req(input$equityType)
@@ -64,6 +67,12 @@ server <- function(input, output, session) {
       
 
   })
+  })
+  
+  observe({
+    if(input$equityType == 4){
+      equity_selected <- reactive(input$equitySelected)
+    }
   
   output$cumR <- renderHighchart({
     req(input$equityType)
@@ -84,6 +93,7 @@ server <- function(input, output, session) {
    
                     
                             
+  })
   })
 }
 
