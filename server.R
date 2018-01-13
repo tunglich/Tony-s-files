@@ -84,7 +84,7 @@ server <- function(input, output, session) {
     highchart() %>%
       hc_add_series(cumR[1:length(equity_selected()),], type = "column", hcaes(x = fund_names, y = culative_return * 100,
                                                         color = fund_names)) %>% 
-      hc_xAxis(title = list(text = 'Selected Funds')) %>% 
+      hc_xAxis(title = list(text = 'Selected Funds', margin = 20)) %>% 
       hc_legend(enabled = FALSE) %>%
       hc_xAxis(labels = "") %>% 
       hc_yAxis(labels = list(format = "{value}%")) %>% 
@@ -154,7 +154,7 @@ server <- function(input, output, session) {
     highchart() %>%
       hc_add_series(cumR[1:length(fixed_selected()),], type = "column", hcaes(x = fund_names, y = culative_return * 100,
                                                                                color = fund_names)) %>% 
-      hc_xAxis(title = list(text = 'Selected Funds')) %>% 
+      hc_xAxis(title = list(text = 'Selected Funds', margin = 20 )) %>% 
       hc_legend(enabled = FALSE) %>%
       hc_xAxis(labels = "") %>% 
       hc_yAxis(labels = list(format = "{value}%")) %>% 
@@ -221,7 +221,7 @@ server <- function(input, output, session) {
     highchart() %>%
       hc_add_series(cumR[1:length(balance_selected()),], type = "column", hcaes(x = fund_names, y = culative_return * 100,
                                                                               color = fund_names)) %>% 
-      hc_xAxis(title = list(text = 'Selected Funds')) %>% 
+      hc_xAxis(title = list(text = 'Selected Funds', margin = 20)) %>% 
       hc_legend(enabled = FALSE) %>%
       hc_xAxis(labels = "") %>% 
       hc_yAxis(labels = list(format = "{value}%")) %>% 
@@ -277,7 +277,7 @@ server <- function(input, output, session) {
     highchart() %>%
       hc_add_series(cumR[1:length(input$otherSelected),], type = "column", hcaes(x = fund_names, y = culative_return * 100,
                                                                                 color = fund_names)) %>% 
-      hc_xAxis(title = list(text = 'Selected Funds')) %>% 
+      hc_xAxis(title = list(text = 'Selected Funds', margin = 20)) %>% 
       hc_legend(enabled = FALSE) %>%
       hc_xAxis(labels = "") %>% 
       hc_yAxis(labels = list(format = "{value}%")) %>% 
@@ -285,7 +285,7 @@ server <- function(input, output, session) {
                  <tr><th>Cumulative Return:</th><td>{point.y:.2f}%</td></tr>', footerFormat = '</table>')
   })
   
-  
+ 
   }
 
 
