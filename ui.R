@@ -172,6 +172,11 @@ min_date <- index(Nomura_Return_All[1])
 max_date <- index(Nomura_Return_All[length(index(Nomura_Return_All))])
 
 allEquity <- union(equity_offs, equity_ons)
+allFixed <- union(fixedIncome_Gn, fixedIncome_HY)
+allBalanced <- union(balanced_offs, balanced_ons)
+otherType <- setdiff(names(Nomura_Return_All), union(union(allEquity, allFixed), allBalanced))
+
+
 
 ui <- tagList(
   
@@ -179,7 +184,7 @@ ui <- tagList(
                 
                 #sidebar layout with a input and output definitions                
                 navbarPage("NTU EMBA",
-                  tabPanel("Equity Funds",      
+                  tabPanel("Equity Funds",
                     sidebarPanel(
                     h4("Performance Plotting"),
                     HTML(paste0("Funds selected by types between the following dates will be plotted,
@@ -208,9 +213,25 @@ ui <- tagList(
                                  choices = allEquity, multiple = TRUE, selected = allEquity[1]))
                     
                     ) 
+                  ),
+                  mainPanel(
+                    tabsetPanel(id = "tabspanel", type = "tabs",
+                                tabPanel(title = "Cumulative Performance", 
+                                         highchartOutput(outputId = "perChart")),
+                                        
+                                        
+                                tabPanel(title = "Return-Risk", 
+                                        
+                                         highchartOutput(outputId = "rStd")),
+                                # New tab panel for Codebook
+                                tabPanel(title = "Cumulative Return Ranks", 
+                                        
+                                         highchartOutput(outputId = "cumR"))
+                    ) 
+                    
                   )
                   ),
-                  tabPanel("Fixed Income Funds",
+                  tabPanel("Fixed Income Funds", 
                       sidebarPanel(
                       h4("Performance Plotting"),
                       HTML(paste0("Funds selected by types between the following dates will be plotted,
@@ -231,8 +252,20 @@ ui <- tagList(
                                                            "All Bond funds" = 3), 
                                                selected = 1)
                           )
-                      )
-                            ),
+                         ),
+                      mainPanel(tabsetPanel(id = "tabspanel1", type = "tabs",
+                                  tabPanel(title = "Cumulative Performance", 
+                                           highchartOutput(outputId = "perChart1")),
+                                  tabPanel(title = "Return-Risk",
+                                           highchartOutput(outputId = "rStd1")),
+                                  # New tab panel for Codebook
+                                  tabPanel(title = "Cumulative Return Ranks",
+                                           highchartOutput(outputId = "cumR1"))
+                      ) 
+                      
+                     )
+                        ),
+                      
                       
                   tabPanel("Balanced Funds",
                       sidebarPanel(
@@ -256,7 +289,18 @@ ui <- tagList(
                                              selected = 1)
                            
                           )
-                          )
+                          ),
+                      mainPanel(tabsetPanel(id = "tabspanel2", type = "tabs",
+                                            tabPanel(title = "Cumulative Performance", 
+                                                     highchartOutput(outputId = "perChart2")),
+                                            tabPanel(title = "Return-Risk",
+                                                     highchartOutput(outputId = "rStd2")),
+                                            # New tab panel for Codebook
+                                            tabPanel(title = "Cumulative Return Ranks",
+                                                     highchartOutput(outputId = "cumR2"))
+                      ) 
+                      
+                      )
                            ),
                   tabPanel("Other Funds",
                            sidebarPanel(
@@ -273,35 +317,18 @@ ui <- tagList(
                                             startview = "month"),
                              h4("Select Fund(s):"),
                              wellPanel(
-                               checkboxGroupInput(inputId = "otherType",
-                                                  label = h4("Other Funds: "),
-                                                  choices = c("Off-Shore Multi-Assets", "Off-Shore Fund of Funds", "Money Market Funds",
-                                                              "REITs"),
-                                                  selected = "Off-Shore Multi-Assets")
+                               selectInput(inputId = "otherSelected", 
+                                           label = h4("Select Multiple Funds:"), 
+                                           choices = otherType, multiple = TRUE, selected = otherType[1]))
+                           
                                
                   )
                   )
-                  ),
-                  mainPanel(
-                    tabsetPanel(id = "tabspanel", type = "tabs",
-                                tabPanel(title = "Cumulative Performance", 
-                                         highchartOutput(outputId = "perChart"),
-                                         br(),
-                                         h4(uiOutput(outputId = "n"))),
-                                tabPanel(title = "Return-Risk", 
-                                         br(),
-                                         highchartOutput(outputId = "rStd")),
-                                # New tab panel for Codebook
-                                tabPanel(title = "Cumulative Return Ranks", 
-                                         br(),
-                                         highchartOutput(outputId = "cumR"))
-                              ) 
-                  
+                 
                   )
                   
-                  
-                )
-                    
+              
+                                  
 )
 
 
