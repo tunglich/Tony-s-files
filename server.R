@@ -4,32 +4,47 @@ server <- function(input, output, session) {
   subset_date <- reactive({
     paste0(input$date[1], "/", input$date[2])
   })
-  n_sample <- reactive({
-    req(input$n_rank)
-    max(1, input$n_rank) %>% min(ncol(Nomura_Return_All))
-    
-  })
 
- 
- 
-  output$perChart <- renderHighchart({
-    
-    funds_selected_date_return <- Nomura_Return_All[subset_date(), 1:n_sample()] 
-    funds_selected_date_price <- cumprod(1+funds_selected_date_return) * 100
-    hc <-highchart(type = "stock")
-    for (i in 1:n_sample()){
-     hc<- hc %>% hc_add_series(funds_selected_date_price[,i], name = colnames(funds_selected_date_price[,i]))
-    }
-    
-    hc %>% hc_yAxis(labels = list(format = "{value}%"))
-                      
-      
+  
+  equity_selected <- eventReactive(input$equityType, {
+    req(input$equityType)
+    if(input$equityType == 1){
+    equity_ons}
+    else if (input$equityType == 2) {
+    equity_offs} 
+    else if (input$equityType == 3) {
+    allEquity}
+    else input$equitySelected
   })
   
+
+  observe({
+    if(input$equityType == 4){
+      equity_selected <- reactive(input$equitySelected)
+    }
+    output$perChart <- renderHighchart({
+      funds_selected_date_return <- Nomura_Return_All[subset_date(), equity_selected()] 
+      funds_selected_date_price <-  (cumprod((1+funds_selected_date_return)) - 1) * 100 
+      
+      hc <-highchart(type = "stock")
+      for (i in 1:length(equity_selected())){
+        hc<- hc %>% hc_add_series(funds_selected_date_price[,i], name = colnames(funds_selected_date_price[,i]))
+      }
+      
+      hc %>% hc_yAxis(labels = list(format = "{value}%"))
+      
+      
+    })
+  })
+  
+
+ 
+  
+  
+  
   output$rStd <- renderHighchart({
-    
-    req(input$n_rank)
-    funds_selected_date <- Nomura_Return_All[subset_date(), 1:n_sample()]
+    req(input$equityType)
+    funds_selected_date <- Nomura_Return_All[subset_date(), equity_selected()]
     a_Return <- annReturn(funds_selected_date)
     a_Std <- annStd(funds_selected_date)
     fund_names <- dimnames(a_Std)[[2]]
@@ -42,7 +57,7 @@ server <- function(input, output, session) {
     highchart() %>%
       hc_add_series(MV, type = "bubble", hcaes(x = Annualized_std, y = Annualized_return, size = sharp, color = fund_names)) %>%
       hc_yAxis(labels = list(format = "{value:.1f}%")) %>% hc_xAxis(labels = list(format = "{value:.1f}%"))  %>% hc_legend(enabled = FALSE) %>% 
-      hc_tooltip(useHTML = TRUE, headerFormat = '<table>', pointFormat = '<tr><th colspan="2"><h5>{point.fund_names}</h5></th></tr>
+      hc_tooltip(useHTML = TRUE, crosshairs = TRUE, headerFormat = '<table>', pointFormat = '<tr><th colspan="2"><h5>{point.fund_names}</h5></th></tr>
                  <tr><th>Annualized Std:</th><td>{point.x:.2f}%</td></tr><tr><th>Annualized Return:</th><td>{point.y:.2f}%</td></tr>
                  <tr><th>Sharp Ratio:</th><td>{point.z:.2f}%</td></tr>', footerFormat = '</table>') %>% 
       hc_xAxis(title = list(text = "Annualized Std")) %>% hc_yAxis(title = list(text = "Annualized Return"))
@@ -51,14 +66,14 @@ server <- function(input, output, session) {
   })
   
   output$cumR <- renderHighchart({
-  
-    cumR <- cumReturn(Nomura_Return_All, input$date[1], input$date[2])
+    req(input$equityType)
+    cumR <- cumReturn(Nomura_Return_All[, equity_selected()], input$date[1], input$date[2])
     cumR <- sort(colMeans(cumR), decreasing = TRUE)
     fund_names <- names(cumR)
     unname(cumR)
     cumR <- data.frame(culative_return = cumR, fund_names = factor(fund_names, level = unique(fund_names)) , row.names = NULL)
     highchart() %>%
-      hc_add_series(cumR[1:n_sample(),], type = "column", hcaes(x = fund_names, y = culative_return * 100,
+      hc_add_series(cumR[1:length(equity_selected()),], type = "column", hcaes(x = fund_names, y = culative_return * 100,
                                                         color = fund_names)) %>% 
       hc_xAxis(title = list(text = 'Selected Funds')) %>% 
       hc_legend(enabled = FALSE) %>%
