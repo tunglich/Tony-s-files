@@ -168,8 +168,6 @@ findBestSharp_mean <- function(currentDate, backPeriod_M, n_ranks) {
 }
 
 
-min_date <- index(Nomura_Return_All[1])
-max_date <- index(Nomura_Return_All[length(index(Nomura_Return_All))])
 
 allEquity <- union(equity_offs, equity_ons)
 allFixed <- union(fixedIncome_Gn, fixedIncome_HY)
@@ -188,12 +186,12 @@ ui <- tagList(
                     sidebarPanel(
                     h4("Performance Plotting"),
                     HTML(paste0("Funds selected by types between the following dates will be plotted,
-                                Pick dates between:  <br/> ",
+                                Pick dates between:  <br> ",
                                 tags$b(min_date), " and " , tags$b(max_date), ".")),
                     br(),
                    
                     dateRangeInput(inputId = "date",
-                                   label = h4("Select dates:"),
+                                   label = h4("Select Dates:"),
                                    start = "2006-12-29", end = "2017-10-31",
                                    min = "2006-12-29", max = "2017-10-31",
                                    startview = "month"),
@@ -240,7 +238,7 @@ ui <- tagList(
                              br(),
                              
                           dateRangeInput(inputId = "date",
-                                            label = h4("Select dates:"),
+                                            label = h4("Select Dates:"),
                                             start = "2006-12-29", end = "2017-10-31",
                                             min = "2006-12-29", max = "2017-10-31",
                                             startview = "month"),
@@ -250,7 +248,7 @@ ui <- tagList(
                                                label = h4("Fixed Income: "),
                                                choices = c("General Bond Funds" = 1 ,"High Yield Bond Funds" = 2,
                                                            "All Bond funds" = 3), 
-                                               selected = 1)
+                                               selected = 1), br()
                           )
                          ),
                       mainPanel(tabsetPanel(id = "tabspanel1", type = "tabs",
@@ -271,12 +269,12 @@ ui <- tagList(
                       sidebarPanel(
                       h4("Performance Plotting"),
                       HTML(paste0("Funds selected by types between the following dates will be plotted,
-                                             Pick dates between:  <br/> ",
+                                             Pick dates between:  <br> ",
                                              tags$b(min_date), " and " , tags$b(max_date), ".")),
                             br(),
                                  
                           dateRangeInput(inputId = "date",
-                                            label = h4("Select dates:"),
+                                            label = h4("Select Dates:"),
                                             start = "2006-12-29", end = "2017-10-31",
                                             min = "2006-12-29", max = "2017-10-31",
                                             startview = "month"),
@@ -286,7 +284,7 @@ ui <- tagList(
                                              label = h4("Balanced: "),
                                              choices = c("On-Shore Equity & Fixed Income" = 1, "Off-shore Equity & Fixed Income" = 2,
                                                          "All Balanced Funds" = 3),
-                                             selected = 1)
+                                             selected = 1), br()
                            
                           )
                           ),
@@ -306,20 +304,21 @@ ui <- tagList(
                            sidebarPanel(
                              h4("Performance Plotting"),
                              HTML(paste0("Funds selected by types between the following dates will be plotted,
-                                         Pick dates between:  <br/> ",
+                                         Pick dates between:  <br> ",
                                          tags$b(min_date), " and " , tags$b(max_date), ".")),
                              br(),
                              
                              dateRangeInput(inputId = "date",
-                                            label = h4("Select dates:"),
+                                            label = h4("Select Dates:"),
                                             start = "2006-12-29", end = "2017-10-31",
                                             min = "2006-12-29", max = "2017-10-31",
                                             startview = "month"),
                              h4("Select Fund(s):"),
                              wellPanel(
                                selectInput(inputId = "otherSelected", 
-                                           label = h4("Select Multiple Funds:"), 
-                                           choices = otherType, multiple = TRUE, selected = otherType[1]))
+                                           label = h4("Select Other Funds:"), 
+                                           choices = otherType, multiple = TRUE, selected = otherType[1]),
+                               br(), br(), br())
                            
                                
                   ),
@@ -334,13 +333,32 @@ ui <- tagList(
                   ) 
                   
                   )
-                  )
-                 
+                  ),
+                  
+              
+                  tabPanel("Data Table",
+                          # Create a new row for the table.
+                          fluidRow(
+                            titlePanel("Fund Returns"),
+                            DT::dataTableOutput("table"),
+                            column(6, verbatimTextOutput("myPort"))
+                          ))
+                          
+                          
+                          
+                          
+                          
+                          
+                  
+                  
                 
                   
-                ), hr()   
-              
+                 )
+      
+)       
                                   
-)
+
+
+
 
 

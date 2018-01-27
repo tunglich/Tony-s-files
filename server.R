@@ -285,6 +285,52 @@ server <- function(input, output, session) {
                  <tr><th>Cumulative Return:</th><td>{point.y:.2f}%</td></tr>', footerFormat = '</table>')
   })
   
+  fund_names <- names(Nomura_Return_All)
+  min_date <- index(Nomura_Return_All[1])
+  max_date <- index(Nomura_Return_All[length(index(Nomura_Return_All))])
+  
+  day1 <- round(Nomura_Return_All[length(Nomura_Return_All[,1]), ]*100,2)
+  rownames(day1) <- NULL
+  day1 <- unname(t(day1))
+  
+  month3 <- round(histPerform(Nomura_Return_All, 3)*100,2)
+  month3 <- tapply(unname(month3), rep(1:nrow(month3), ncol(month3)), function(x)x) %>% unlist(use.names = FALSE)
+  
+  
+  month6 <- round(histPerform(Nomura_Return_All, 6)*100,2)
+  month6 <- tapply(unname(month6), rep(1:nrow(month6), ncol(month6 )), function(x)x) %>% unlist(use.names = FALSE)
+  
+  year1 <- round(histPerform(Nomura_Return_All, 12)*100,2)
+  year1 <- tapply(unname(year1), rep(1:nrow(year1), ncol(year1)), function(x)x) %>% unlist(use.names = FALSE)
+  
+  year3 <- round(histPerform(Nomura_Return_All, 36)*100,2)
+  year3 <- tapply(unname(year3), rep(1:nrow(year3), ncol(year3)), function(x)x) %>% unlist(use.names = FALSE)
+  
+  year5 <- round(histPerform(Nomura_Return_All, 60)*100,2)
+  year5 <- tapply(unname(year5), rep(1:nrow(year5), ncol(year5)), function(x)x) %>% unlist(use.names = FALSE)
+  
+  data_table <- data.frame(Daily_return = day1, Month_3 = month3, Month_6 = month6, 
+                           Year_1 = year1, Year_3 = year3, Year_5 = year5)
+  rownames(data_table) <- fund_names
+  
+  output$table = DT::renderDataTable({
+   
+    datatable(data_table, class = 'display', rownames = TRUE, filter = 'none', style = 'bootstrap', 
+                            caption = 'Culumative Return(%)') %>% formatRound(names(data_table),2) %>% 
+                            formatStyle(names(data_table[,1:6]), color = styleInterval(c(-0.000001,0.000001), c('green', 'black', 'red')))
+                                        
+    
+    
+
+  })
+
+  output$myPort = renderPrint({
+      s = input$table_rows_selected
+      if (length(s)){
+        cat('These funds were selected:\n\n')
+        cat(rownames(data_table[s,]), sep = ',')
+      }
+    })
  
   }
 
