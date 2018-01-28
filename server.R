@@ -1,11 +1,8 @@
 
-
-
 server <- function(input, output, session) {
   subset_date <- reactive({
     paste0(input$date[1], "/", input$date[2])
   })
-
 
   equity_selected <- eventReactive(input$equityType, {
     req(input$equityType)
@@ -345,20 +342,26 @@ server <- function(input, output, session) {
   my_portfolio <- reactive(
     Nomura_Return_All[,input$table_rows_selected])
   
+  allEquity_return <- Nomura_Return_All[, allEquity] 
+  allFixed_return <- Nomura_Return_All[, allFixed] 
+  allBalanced_return <- Nomura_Return_All[,c(balanced_offs, balanced_ons)] 
+  allFund_return <- Nomura_Return_All 
+  
+  
   datasetSelect <- reactive({
+    input$goButton
     
     switch(input$dataset,
            
            "My Portfolio" = my_portfolio(),
            
-           "All Equities" = Nomura_Return_All[,allEquity],
+           "All Equities" = allEquity_return,
            
-           "All Fixed Incomes" = Nomura_Return_All[,allFixed],
+           "All Fixed Incomes" = allFixed_return,
            
-           "All Balanceds" = Nomura_Return_All[,allBalanced],
-           
-           "All MultiAssets" = Nomura_Return_all[,multiAsset_offs],
-           "All funds" = Nomura_Return_All
+           "All Balanceds" = allBalanced_return,
+          
+           "All Funds" = allFund_return
            )
     
   })
@@ -534,7 +537,7 @@ server <- function(input, output, session) {
   
   
   output$portfolio <- renderPrint({
-    
+   
     print(portf())
     
   })
@@ -542,6 +545,7 @@ server <- function(input, output, session) {
   
   
   output$optimization <- renderPrint({
+    
     
     print(opt())
     
@@ -552,6 +556,7 @@ server <- function(input, output, session) {
   output$chart.RiskReward <- renderPlot({
     
     input$goButton
+    
     
     isolate({
       
@@ -569,7 +574,7 @@ server <- function(input, output, session) {
         
       }
       
-      chart.RiskReward(opt(), return.col=input$return_name, risk.col=risk_col, 
+      chart.RiskReward(opt(), return.col= input$return_name, risk.col=risk_col, 
                        
                        chart.assets=TRUE, main="Optimization")
       
@@ -588,7 +593,7 @@ server <- function(input, output, session) {
   
   
   output$chart.RiskBudget <- renderPlot({
-    
+   
     input$goButton
     
     isolate({
@@ -598,6 +603,7 @@ server <- function(input, output, session) {
         chart.RiskBudget(opt(), neighbors=10, risk.type="percentage", 
                          
                          main="Risk Budget", match.col=input$risk_budget_name)
+        mtext("y=1/x", side=3, line=3, cex.lab=1,las=2, col="blue")
         
       }
       
@@ -609,6 +615,7 @@ server <- function(input, output, session) {
   
   # Show all available data
   output$performanceSummary <- renderPlot({
+    
     input$goButton
     isolate({
   returns_robot <- Return.portfolio(R = data(), weights = extractWeights(opt()))

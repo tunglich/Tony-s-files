@@ -13,7 +13,6 @@ library(DT)
 library(tools)
 library(zoo)
 library(xts)
-library(dplyr)
 library(quantmod)
 library(PerformanceAnalytics)
 library(lubridate)
@@ -24,6 +23,15 @@ library(highcharter)
 library(RColorBrewer)
 library(tidyr)
 library(PortfolioAnalytics)
+library(ROI)
+library(ROI.plugin.glpk)
+library(ROI.plugin.deoptim)
+library(ROI.plugin.lpsolve)
+library(ROI.plugin.nloptr)
+library(ROI.plugin.optimx)
+library(ROI.plugin.quadprog)
+library(ROI.plugin.symphony)
+
 
 
 
@@ -371,8 +379,8 @@ ui <- tagList(
                                                    selectInput("dataset", "Choose a dataset:", 
                                                                
                                                                choices = c("My Portfolio", "All Equities", "All Fixed Incomes",
-                                                                           "All Balanceds", "All MultiAssets","All funds"),
-                                                               selected = "My Portfolio"),
+                                                                           "All Balanceds","All Funds"),
+                                                               selected = "All Equities"),
                                                    
                                                    tags$hr(),
                                                    
@@ -466,7 +474,7 @@ ui <- tagList(
                                                                
                                                                "Box Constraints:", 
                                                                
-                                                               min = 0.05, 
+                                                               min = 0, 
                                                                
                                                                max = 1, 
                                                                
@@ -652,8 +660,7 @@ ui <- tagList(
                                                               plotOutput("chart.RiskReward"),
                                                               
                                                               plotOutput("chart.Weights"),
-                                                              
-                                                              plotOutput("performanceSummary"),
+                                          
                                                               
                                                               plotOutput("chart.RiskBudget")
                                                               
@@ -671,7 +678,8 @@ ui <- tagList(
                                                               
                                                      ),
                                                      
-                                                     tabPanel("Performance Summary")
+                                                     tabPanel("Performance Summary",
+                                                              plotOutput("performanceSummary"))
                                                               
                                                      
                                                      
