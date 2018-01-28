@@ -340,8 +340,7 @@ server <- function(input, output, session) {
   
   
   ##### Dynamically choose the data #####
-  data(edhec)
-  load("data/crsp.short.rda")
+
   
   my_portfolio <- reactive(
     Nomura_Return_All[,input$table_rows_selected])
@@ -609,13 +608,16 @@ server <- function(input, output, session) {
   
   
   # Show all available data
-  
-  output$rawData <- renderPrint({
-    
-    head(data())  
+  output$performanceSummary <- renderPlot({
+    input$goButton
+    isolate({
+  returns_robot <- Return.portfolio(R = data(), weights = extractWeights(opt()))
+  returns_robot <- cbind(returns_robot, data())
+    charts.PerformanceSummary(returns_robot, main = "Performance Summary",
+                              legend.loc = "topleft", wealth.index=TRUE)
  
   })
- 
+  })
   }
 
 

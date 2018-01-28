@@ -466,9 +466,9 @@ ui <- tagList(
                                                                
                                                                "Box Constraints:", 
                                                                
-                                                               min = -1.5, 
+                                                               min = 0.05, 
                                                                
-                                                               max = 2, 
+                                                               max = 1, 
                                                                
                                                                value = c(0, 1),
                                                                
@@ -653,6 +653,8 @@ ui <- tagList(
                                                               
                                                               plotOutput("chart.Weights"),
                                                               
+                                                              plotOutput("performanceSummary"),
+                                                              
                                                               plotOutput("chart.RiskBudget")
                                                               
                                                      ),
@@ -669,13 +671,9 @@ ui <- tagList(
                                                               
                                                      ),
                                                      
-                                                     tabPanel("Data", 
+                                                     tabPanel("Performance Summary")
                                                               
-                                                              h4("Input Data (displaying first 6 observations)"),
-                                                              
-                                                              verbatimTextOutput("rawData")
-                                                              
-                                                     )
+                                                     
                                                      
                                                    )
                                                    
