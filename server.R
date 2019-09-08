@@ -1,285 +1,632 @@
-paramNames <- c("start_capital", "annual_mean_return", "annual_ret_std_dev",
-                
-                "annual_inflation", "annual_inf_std_dev", "monthly_withdrawals", "n_obs",
-                
-                "n_sim")
 
+server <- function(input, output, session) {
+  subset_date <- reactive({
+    paste0(input$date[1], "/", input$date[2])
+  })
 
+  equity_selected <- eventReactive(input$equityType, {
+    req(input$equityType)
+    if(input$equityType == 1){
+    equity_ons}
+    else if (input$equityType == 2) {
+    equity_offs} 
+    else if (input$equityType == 3) {
+    allEquity}
+    else input$equitySelected
+  })
+  
+ 
+  
 
-simulate_nav <- function(start_capital = 2000000, annual_mean_return = 5.0,
-                         
-                         annual_ret_std_dev = 7.0, annual_inflation = 2.5,
-                         
-                         annual_inf_std_dev = 1.5, monthly_withdrawals = 10000,
-                         
-                         n_obs = 20, n_sim = 50) {
-  
-  #-------------------------------------
-  
-  # Inputs
-  
-  #-------------------------------------
-  
-  
-  
-  # Initial capital
-  
-  start.capital = start_capital
-  
-  
-  
-  # Investment
-  
-  annual.mean.return = annual_mean_return / 100
-  
-  annual.ret.std.dev = annual_ret_std_dev / 100
-  
-  
-  
-  # Inflation
-  
-  annual.inflation = annual_inflation / 100
-  
-  annual.inf.std.dev = annual_inf_std_dev / 100
-  
-  
-  
-  # Withdrawals
-  
-  monthly.withdrawals = monthly_withdrawals
-  
-  
-  
-  # Number of observations (in Years)
-  
-  n.obs = n_obs
-  
-  
-  
-  # Number of simulations
-  
-  n.sim = n_sim
-  
-  
-  
-  
-  
-  #-------------------------------------
-  
-  # Simulation
-  
-  #-------------------------------------
-  
-  
-  
-  # number of months to simulate
-  
-  n.obs = 12 * n.obs
-  
-  
-  
-  # monthly Investment and Inflation assumptions
-  
-  monthly.mean.return = annual.mean.return / 12
-  
-  monthly.ret.std.dev = annual.ret.std.dev / sqrt(12)
-  
-  
-  
-  monthly.inflation = annual.inflation / 12
-  
-  monthly.inf.std.dev = annual.inf.std.dev / sqrt(12)
-  
-  
-  
-  # simulate Returns
-  
-  monthly.invest.returns = matrix(0, n.obs, n.sim)
-  
-  monthly.inflation.returns = matrix(0, n.obs, n.sim)
-  
-  
-  
-  monthly.invest.returns[] = rnorm(n.obs * n.sim, mean = monthly.mean.return, sd = monthly.ret.std.dev)
-  
-  monthly.inflation.returns[] = rnorm(n.obs * n.sim, mean = monthly.inflation, sd = monthly.inf.std.dev)
-  
-  
-  
-  # simulate Withdrawals
-  
-  nav = matrix(start.capital, n.obs + 1, n.sim)
-  
-  for (j in 1:n.obs) {
-    
-    nav[j + 1, ] = nav[j, ] * (1 + monthly.invest.returns[j, ] - monthly.inflation.returns[j, ]) - monthly.withdrawals
-    
-  }
-  
-  
-  
-  # once nav is below 0 => run out of money
-  
-  nav[ nav < 0 ] = NA
-  
-  
-  
-  # convert to millions
-  
-  nav = nav / 1000000
-  
-  
-  
-  return(nav)
-  
-}
-
-
-
-plot_nav <- function(nav) {
-  
-  
-  
-  layout(matrix(c(1,2,1,3),2,2))
-  
-  
-  
-  palette(c("black", "grey50", "grey30", "grey70", "#d9230f"))
-  
-  
-  
-  # plot all scenarios
-  
-  matplot(nav,
-          
-          type = 'l', lwd = 0.5, lty = 1, col = 1:5,
-          
-          xlab = 'Months', ylab = 'Millions',
-          
-          main = 'Projected Value of Initial Capital')
-  
-  
-  
-  # plot % of scenarios that are still paying
-  
-  p.alive = 1 - rowSums(is.na(nav)) / ncol(nav)
-  
-  
-  
-  plot(100 * p.alive, las = 1, xlab = 'Months', ylab = 'Percentage Paying',
-       
-       main = 'Percentage of Paying Scenarios', ylim=c(0,100))
-  
-  grid()
-  
-  
-  
-  
-  
-  last.period = nrow(nav)
-  
-  
-  
-  # plot distribution of final wealth
-  
-  final.nav = nav[last.period, ]
-  
-  final.nav = final.nav[!is.na(final.nav)]
-  
-  
-  
-  if(length(final.nav) ==  0) return()
-  
-  
-  
-  plot(density(final.nav, from=0, to=max(final.nav)), las = 1, xlab = 'Final Capital',
-       
-       main = paste0('Distribution of Final Capital\n', 100 * p.alive[last.period], '% are still paying'))
-  
-  grid()
-  
-}
-
-
-
-# Define server logic required to generate and plot a random distribution
-
-#
-
-# Idea and original code by Pierre Chretien
-
-# Small updates by Michael Kapler
-
-#
-
-function(input, output, session) {
-  
-  
-  
-  getParams <- function(prefix) {
-    
-    input[[paste0(prefix, "_recalc")]]
-    
-    
-    
-    params <- lapply(paramNames, function(p) {
+  observe({
+    if(input$equityType == 4){
+      equity_selected <- reactive(input$equitySelected)
+    }
+    output$perChart <- renderHighchart({
+      funds_selected_date_return <- Nomura_Return_All[subset_date(), equity_selected()] 
+      funds_selected_date_price <-  round((cumprod((1+funds_selected_date_return))-1) * 100, 2)
       
-      input[[paste0(prefix, "_", p)]]
+      hc <-highchart(type = "stock") %>% hc_yAxis(labels = list(format = "{value}%"),
+                                                  opposite = FALSE, min = -50) %>% 
+        hc_tooltip(useHTML = TRUE, headerFormat = '<table>', pointFormat = '{series.name}: <b>{point.y:.2f}%</b><br>')
+      
+      for (i in 1:length(equity_selected())){
+        hc<- hc %>% hc_add_series(funds_selected_date_price[,i], name = colnames(funds_selected_date_price[,i]))
+      }
+      hc
+      })
+  })
+  
+
+  
+  observe({
+    if(input$equityType == 4){
+      equity_selected <- reactive(input$equitySelected)
+    }
+  
+  output$rStd <- renderHighchart({
+    req(input$equityType)
+    funds_selected_date <- Nomura_Return_All[subset_date(), equity_selected()]
+    a_Return <- annReturn(funds_selected_date)
+    a_Std <- annStd(funds_selected_date)
+    fund_names <- dimnames(a_Std)[[2]]
+    a_Return <- tapply(unname(a_Return), rep(1:nrow(a_Return), ncol(a_Return)), function(x)x)
+    a_Return <- unlist(a_Return, use.names = FALSE)
+    a_Std <- tapply(unname(a_Std), rep(1:nrow(a_Std), ncol(a_Std)), function(x)x)
+    a_Std <- unlist(a_Std, use.names = FALSE)
+    MV <- data.frame(Annualized_return = a_Return * 100, Annualized_std = a_Std * 100,
+                     fund_names = factor(fund_names, level = unique(fund_names)), sharp = (a_Return - 0)/ a_Std)
+    highchart() %>%
+      hc_add_series(MV, type = "bubble", hcaes(x = Annualized_std, y = Annualized_return, size = sharp, color = fund_names)) %>%
+      hc_yAxis(labels = list(format = "{value:.1f}%")) %>% hc_xAxis(labels = list(format = "{value:.1f}%"))  %>% hc_legend(enabled = FALSE) %>% 
+      hc_tooltip(useHTML = TRUE, crosshairs = TRUE, headerFormat = '<table>', pointFormat = '<tr><th colspan="2"><h5>{point.fund_names}</h5></th></tr>
+                 <tr><th>Annualized Std:</th><td>{point.x:.2f}%</td></tr><tr><th>Annualized Return:</th><td>{point.y:.2f}%</td></tr>
+                 <tr><th>Sharp Ratio:</th><td>{point.z:.2f}%</td></tr>', footerFormat = '</table>') %>% 
+      hc_xAxis(title = list(text = "Annualized Std")) %>% hc_yAxis(title = list(text = "Annualized Return"))
+      
+
+  })
+  })
+  
+  observe({
+    if(input$equityType == 4){
+      equity_selected <- reactive(input$equitySelected)
+    }
+  
+  output$cumR <- renderHighchart({
+    req(input$equityType)
+    cumR <- cumReturn(Nomura_Return_All[, equity_selected()], input$date[1], input$date[2])
+    cumR <- sort(colMeans(cumR), decreasing = TRUE)
+    fund_names <- names(cumR)
+    unname(cumR)
+    cumR <- data.frame(culative_return = cumR, fund_names = factor(fund_names, level = unique(fund_names)) , row.names = NULL)
+    highchart() %>%
+      hc_add_series(cumR[1:length(equity_selected()),], type = "column", hcaes(x = fund_names, y = culative_return * 100,
+                                                        color = fund_names)) %>% 
+      hc_xAxis(title = list(text = 'Selected Funds', margin = 20)) %>% 
+      hc_legend(enabled = FALSE) %>%
+      hc_xAxis(labels = "") %>% 
+      hc_yAxis(labels = list(format = "{value}%")) %>% 
+      hc_tooltip(useHTML = TRUE, headerFormat = '<table>', pointFormat = '<tr><th colspan="2"><h5>{point.fund_names}</h5></th></tr>
+                 <tr><th>Cumulative Return:</th><td>{point.y:.2f}%</td></tr>', footerFormat = '</table>')
+   
+                    
+                            
+  })
+  })
+  
+  fixed_selected <- eventReactive(input$fixedType, {
+    req(input$fixedType)
+    if(input$fixedType == 1){
+      fixedIncome_Gn}
+    else if (input$equityType == 2) {
+      fixedIncome_HY} 
+    else allFixed
+  })
+  
+  output$perChart1 <- renderHighchart({
+    funds_selected_date_return <- Nomura_Return_All[subset_date(), fixed_selected()] 
+    funds_selected_date_price <-  round((cumprod((1+funds_selected_date_return))-1) * 100, 2)
+    
+    hc <-highchart(type = "stock") %>% hc_yAxis(labels = list(format = "{value}%"),
+                                               opposite = FALSE, min = -50) %>% 
+      hc_tooltip(useHTML = TRUE, headerFormat = '<table>', pointFormat = '{series.name}: <b>{point.y:.2f}%</b><br>')
+    for (i in 1:length(fixed_selected())){
+      hc<- hc %>% hc_add_series(funds_selected_date_price[,i], name = colnames(funds_selected_date_price[,i]))
+    }
+    
+    hc 
+    
+    
+  })
+  
+  output$rStd1 <- renderHighchart({
+    req(input$fixedType)
+    funds_selected_date <- Nomura_Return_All[subset_date(), fixed_selected()]
+    a_Return <- annReturn(funds_selected_date)
+    a_Std <- annStd(funds_selected_date)
+    fund_names <- dimnames(a_Std)[[2]]
+    a_Return <- tapply(unname(a_Return), rep(1:nrow(a_Return), ncol(a_Return)), function(x)x)
+    a_Return <- unlist(a_Return, use.names = FALSE)
+    a_Std <- tapply(unname(a_Std), rep(1:nrow(a_Std), ncol(a_Std)), function(x)x)
+    a_Std <- unlist(a_Std, use.names = FALSE)
+    MV <- data.frame(Annualized_return = a_Return * 100, Annualized_std = a_Std * 100,
+                     fund_names = factor(fund_names, level = unique(fund_names)), sharp = (a_Return - 0)/ a_Std)
+    highchart() %>%
+      hc_add_series(MV, type = "bubble", hcaes(x = Annualized_std, y = Annualized_return, size = sharp, color = fund_names)) %>%
+      hc_yAxis(labels = list(format = "{value:.1f}%")) %>% hc_xAxis(labels = list(format = "{value:.1f}%"))  %>% hc_legend(enabled = FALSE) %>% 
+      hc_tooltip(useHTML = TRUE, crosshairs = TRUE, headerFormat = '<table>', pointFormat = '<tr><th colspan="2"><h5>{point.fund_names}</h5></th></tr>
+                 <tr><th>Annualized Std:</th><td>{point.x:.2f}%</td></tr><tr><th>Annualized Return:</th><td>{point.y:.2f}%</td></tr>
+                 <tr><th>Sharp Ratio:</th><td>{point.z:.2f}%</td></tr>', footerFormat = '</table>') %>% 
+      hc_xAxis(title = list(text = "Annualized Std")) %>% hc_yAxis(title = list(text = "Annualized Return"))
+    
+    
+  })
+  
+  output$cumR1 <- renderHighchart({
+    req(input$fixedType)
+    cumR <- cumReturn(Nomura_Return_All[, fixed_selected()], input$date[1], input$date[2])
+    cumR <- sort(colMeans(cumR), decreasing = TRUE)
+    fund_names <- names(cumR)
+    unname(cumR)
+    cumR <- data.frame(culative_return = cumR, fund_names = factor(fund_names, level = unique(fund_names)) , row.names = NULL)
+    highchart() %>%
+      hc_add_series(cumR[1:length(fixed_selected()),], type = "column", hcaes(x = fund_names, y = culative_return * 100,
+                                                                               color = fund_names)) %>% 
+      hc_xAxis(title = list(text = 'Selected Funds', margin = 20 )) %>% 
+      hc_legend(enabled = FALSE) %>%
+      hc_xAxis(labels = "") %>% 
+      hc_yAxis(labels = list(format = "{value}%")) %>% 
+      hc_tooltip(useHTML = TRUE, headerFormat = '<table>', pointFormat = '<tr><th colspan="2"><h5>{point.fund_names}</h5></th></tr>
+                 <tr><th>Cumulative Return:</th><td>{point.y:.2f}%</td></tr>', footerFormat = '</table>')
+  })
+  
+  balance_selected <- eventReactive(input$balanceType, {
+    req(input$balanceType)
+    if(input$balanceType == 1){
+      balanced_ons}
+    else if (input$balanceType == 2) {
+      balanced_offs} 
+    else allBalanced
+  })
+  
+  output$perChart2 <- renderHighchart({
+    funds_selected_date_return <- Nomura_Return_All[subset_date(), balance_selected()] 
+    funds_selected_date_price <-  round((cumprod((1+funds_selected_date_return))-1) * 100, 2)
+    
+    hc <-highchart(type = "stock") %>% hc_yAxis(labels = list(format = "{value}%"),
+                                                opposite = FALSE, min = -50) %>% 
+      hc_tooltip(useHTML = TRUE, headerFormat = '<table>', pointFormat = '{series.name}: <b>{point.y:.2f}%</b><br>')
+   
+    for (i in 1:length(balance_selected())){
+      hc<- hc %>% hc_add_series(funds_selected_date_price[,i], name = colnames(funds_selected_date_price[,i]))
+    }
+    
+    hc 
+    
+    
+  })
+  
+  output$rStd2 <- renderHighchart({
+    req(input$balanceType)
+    funds_selected_date <- Nomura_Return_All[subset_date(), balance_selected()]
+    a_Return <- annReturn(funds_selected_date)
+    a_Std <- annStd(funds_selected_date)
+    fund_names <- dimnames(a_Std)[[2]]
+    a_Return <- tapply(unname(a_Return), rep(1:nrow(a_Return), ncol(a_Return)), function(x)x)
+    a_Return <- unlist(a_Return, use.names = FALSE)
+    a_Std <- tapply(unname(a_Std), rep(1:nrow(a_Std), ncol(a_Std)), function(x)x)
+    a_Std <- unlist(a_Std, use.names = FALSE)
+    MV <- data.frame(Annualized_return = a_Return * 100, Annualized_std = a_Std * 100,
+                     fund_names = factor(fund_names, level = unique(fund_names)), sharp = (a_Return - 0)/ a_Std)
+    highchart() %>%
+      hc_add_series(MV, type = "bubble", hcaes(x = Annualized_std, y = Annualized_return, size = sharp, color = fund_names)) %>%
+      hc_yAxis(labels = list(format = "{value:.1f}%")) %>% hc_xAxis(labels = list(format = "{value:.1f}%"))  %>% hc_legend(enabled = FALSE) %>% 
+      hc_tooltip(useHTML = TRUE, crosshairs = TRUE, headerFormat = '<table>', pointFormat = '<tr><th colspan="2"><h5>{point.fund_names}</h5></th></tr>
+                 <tr><th>Annualized Std:</th><td>{point.x:.2f}%</td></tr><tr><th>Annualized Return:</th><td>{point.y:.2f}%</td></tr>
+                 <tr><th>Sharp Ratio:</th><td>{point.z:.2f}%</td></tr>', footerFormat = '</table>') %>% 
+      hc_xAxis(title = list(text = "Annualized Std")) %>% hc_yAxis(title = list(text = "Annualized Return"))
+    
+    
+  })
+  
+  output$cumR2 <- renderHighchart({
+    req(input$balanceType)
+    cumR <- cumReturn(Nomura_Return_All[, balance_selected()], input$date[1], input$date[2])
+    cumR <- sort(colMeans(cumR), decreasing = TRUE)
+    fund_names <- names(cumR)
+    unname(cumR)
+    cumR <- data.frame(culative_return = cumR, fund_names = factor(fund_names, level = unique(fund_names)) , row.names = NULL)
+    highchart() %>%
+      hc_add_series(cumR[1:length(balance_selected()),], type = "column", hcaes(x = fund_names, y = culative_return * 100,
+                                                                              color = fund_names)) %>% 
+      hc_xAxis(title = list(text = 'Selected Funds', margin = 20)) %>% 
+      hc_legend(enabled = FALSE) %>%
+      hc_xAxis(labels = "") %>% 
+      hc_yAxis(labels = list(format = "{value}%")) %>% 
+      hc_tooltip(useHTML = TRUE, headerFormat = '<table>', pointFormat = '<tr><th colspan="2"><h5>{point.fund_names}</h5></th></tr>
+                 <tr><th>Cumulative Return:</th><td>{point.y:.2f}%</td></tr>', footerFormat = '</table>')
+  })
+  
+  output$perChart3 <- renderHighchart({
+    funds_selected_date_return <- Nomura_Return_All[subset_date(), input$otherSelected] 
+    funds_selected_date_price <-  round((cumprod((1+funds_selected_date_return))-1) * 100, 2) 
+    
+    hc <-highchart(type = "stock") %>% hc_yAxis(labels = list(format = "{value}%"),
+                                               opposite = FALSE, min = -50) %>% 
+      hc_tooltip(useHTML = TRUE, headerFormat = '<table>', pointFormat = '{series.name}: <b>{point.y:.2f}%</b><br>')
+    for (i in 1:length(input$otherSelected)){
+      hc<- hc %>% hc_add_series(funds_selected_date_price[,i], name = colnames(funds_selected_date_price[,i]))
+    }
+    
+    hc 
+    
+    
+  })
+  output$rStd3 <- renderHighchart({
+    req(input$otherSelected)
+    funds_selected_date <- Nomura_Return_All[subset_date(), input$otherSelected]
+    a_Return <- annReturn(funds_selected_date)
+    a_Std <- annStd(funds_selected_date)
+    fund_names <- dimnames(a_Std)[[2]]
+    a_Return <- tapply(unname(a_Return), rep(1:nrow(a_Return), ncol(a_Return)), function(x)x)
+    a_Return <- unlist(a_Return, use.names = FALSE)
+    a_Std <- tapply(unname(a_Std), rep(1:nrow(a_Std), ncol(a_Std)), function(x)x)
+    a_Std <- unlist(a_Std, use.names = FALSE)
+    MV <- data.frame(Annualized_return = a_Return * 100, Annualized_std = a_Std * 100,
+                     fund_names = factor(fund_names, level = unique(fund_names)), sharp = (a_Return - 0)/ a_Std)
+    highchart() %>%
+      hc_add_series(MV, type = "bubble", hcaes(x = Annualized_std, y = Annualized_return, size = sharp, color = fund_names)) %>%
+      hc_yAxis(labels = list(format = "{value:.1f}%")) %>% hc_xAxis(labels = list(format = "{value:.1f}%"))  %>% hc_legend(enabled = FALSE) %>% 
+      hc_tooltip(useHTML = TRUE, crosshairs = TRUE, headerFormat = '<table>', pointFormat = '<tr><th colspan="2"><h5>{point.fund_names}</h5></th></tr>
+                 <tr><th>Annualized Std:</th><td>{point.x:.2f}%</td></tr><tr><th>Annualized Return:</th><td>{point.y:.2f}%</td></tr>
+                 <tr><th>Sharp Ratio:</th><td>{point.z:.2f}%</td></tr>', footerFormat = '</table>') %>% 
+      hc_xAxis(title = list(text = "Annualized Std")) %>% hc_yAxis(title = list(text = "Annualized Return"))
+    
+    
+  })
+  
+  output$cumR3 <- renderHighchart({
+    req(input$otherSelected)
+    cumR <- cumReturn(Nomura_Return_All[, input$otherSelected], input$date[1], input$date[2])
+    cumR <- sort(colMeans(cumR), decreasing = TRUE)
+    fund_names <- names(cumR)
+    unname(cumR)
+    cumR <- data.frame(culative_return = cumR, fund_names = factor(fund_names, level = unique(fund_names)) , row.names = NULL)
+    highchart() %>%
+      hc_add_series(cumR[1:length(input$otherSelected),], type = "column", hcaes(x = fund_names, y = culative_return * 100,
+                                                                                color = fund_names)) %>% 
+      hc_xAxis(title = list(text = 'Selected Funds', margin = 20)) %>% 
+      hc_legend(enabled = FALSE) %>%
+      hc_xAxis(labels = "") %>% 
+      hc_yAxis(labels = list(format = "{value}%")) %>% 
+      hc_tooltip(useHTML = TRUE, headerFormat = '<table>', pointFormat = '<tr><th colspan="2"><h5>{point.fund_names}</h5></th></tr>
+                 <tr><th>Cumulative Return:</th><td>{point.y:.2f}%</td></tr>', footerFormat = '</table>')
+  })
+  
+  fund_names <- names(Nomura_Return_All)
+  min_date <- index(Nomura_Return_All[1])
+  max_date <- index(Nomura_Return_All[length(index(Nomura_Return_All))])
+  
+  day1 <- round(Nomura_Return_All[length(Nomura_Return_All[,1]), ]*100,2)
+  rownames(day1) <- NULL
+  day1 <- unname(t(day1))
+  
+  month3 <- round(histPerform(Nomura_Return_All, 3)*100,2)
+  month3 <- tapply(unname(month3), rep(1:nrow(month3), ncol(month3)), function(x)x) %>% unlist(use.names = FALSE)
+  
+  
+  month6 <- round(histPerform(Nomura_Return_All, 6)*100,2)
+  month6 <- tapply(unname(month6), rep(1:nrow(month6), ncol(month6 )), function(x)x) %>% unlist(use.names = FALSE)
+  
+  year1 <- round(histPerform(Nomura_Return_All, 12)*100,2)
+  year1 <- tapply(unname(year1), rep(1:nrow(year1), ncol(year1)), function(x)x) %>% unlist(use.names = FALSE)
+  
+  year3 <- round(histPerform(Nomura_Return_All, 36)*100,2)
+  year3 <- tapply(unname(year3), rep(1:nrow(year3), ncol(year3)), function(x)x) %>% unlist(use.names = FALSE)
+  
+  year5 <- round(histPerform(Nomura_Return_All, 60)*100,2)
+  year5 <- tapply(unname(year5), rep(1:nrow(year5), ncol(year5)), function(x)x) %>% unlist(use.names = FALSE)
+  
+  data_table <- data.frame(Daily_return = day1, Month_3 = month3, Month_6 = month6, 
+                           Year_1 = year1, Year_3 = year3, Year_5 = year5)
+  rownames(data_table) <- fund_names
+  
+  output$table = DT::renderDataTable({
+   
+    datatable(data_table, class = 'display', rownames = TRUE, filter = 'none', style = 'bootstrap', 
+                            caption = 'Culumative Return(%)') %>% formatRound(names(data_table),2) %>% 
+                            formatStyle(names(data_table[,1:6]), color = styleInterval(c(-0.000001,0.000001), c('green', 'black', 'red')))
+                                        
+    
+    
+
+  })
+
+  output$myPort = renderPrint({
+      s = input$table_rows_selected
+      if (length(s)){
+        cat('These funds were selected:\n\n')
+        cat(rownames(data_table[s,]), sep = '\n')
+
+      }
+    })
+  
+  
+  
+  
+  
+  ##### Dynamically choose the data #####
+
+  
+  my_portfolio <- reactive(
+    Nomura_Return_All[,input$table_rows_selected])
+  
+  allEquity_return <- Nomura_Return_All[, allEquity] 
+  allFixed_return <- Nomura_Return_All[, allFixed] 
+  allBalanced_return <- Nomura_Return_All[,c(balanced_offs, balanced_ons)] 
+  allFund_return <- Nomura_Return_All 
+  
+  
+  datasetSelect <- reactive({
+    input$goButton
+    
+    switch(input$dataset,
+           
+           "My Portfolio" = my_portfolio(),
+           
+           "All Equities" = allEquity_return,
+           
+           "All Fixed Incomes" = allFixed_return,
+           
+           "All Balanceds" = allBalanced_return,
+          
+           "All Funds" = allFund_return
+           )
+    
+  })
+  
+  
+  
+  datasetInput <- reactive({
+    
+    # input$file1 will be NULL initially. After the user selects
+    
+    # and uploads a file, it will be a data frame with 'name',
+    
+    # 'size', 'type', and 'datapath' columns. The 'datapath'
+    
+    # column will contain the local filenames where the data can
+    
+    # be found.
+    
+    
+    
+    inFile <- input$file1
+    
+    
+    
+    if (is.null(inFile))
+      
+      return(NULL)
+    
+    
+    
+    data <- read.csv(file=inFile$datapath, sep=input$sep, header=input$header, as.is=TRUE)
+    
+    data.xts <- xts(data[,-1], as.Date(data[,1], format=input$format))
+    
+    #summary(data.xts)
+    
+    data.xts
+    
+  })
+  
+  
+  
+  data <- reactive({
+    
+    if(input$userFile){
+      
+      if(!is.null(datasetInput())){
+        
+        data <- datasetInput()
+        
+      }
+      
+    } else {
+      
+      data <- datasetSelect()
+      
+    }
+    
+  })
+  
+  
+  
+  
+  
+  portf <- reactive({
+    
+    input$goButton
+    
+    isolate({
+      
+      R <- data()
+      
+      n <- ncol(R)
+      
+      funds <- colnames(R)
+      
+      
+      
+      if(input$optimize_method != "ROI"){
+        
+        min_sum <- input$weight_sum - 0.01
+        
+        max_sum <- input$weight_sum + 0.01
+        
+      } else {
+        
+        min_sum <- input$weight_sum
+        
+        max_sum <- input$weight_sum
+        
+      }
+      
+      
+      
+      init.portf <- portfolio.spec(funds)
+      
+      init.portf <- add.constraint(init.portf, "weight_sum", 
+                                   
+                                   min_sum=min_sum, 
+                                   
+                                   max_sum=max_sum)
+      
+      if(input$box_enabled){
+        
+        init.portf <- add.constraint(init.portf, "box", 
+                                     
+                                     min=input$box[1], 
+                                     
+                                     max=input$box[2])
+        
+      }
+      
+      if(input$return_enabled){
+        
+        init.portf <- add.objective(init.portf, type="return", 
+                                    
+                                    name=input$return_name)
+        
+      }
+      
+      if(input$risk_enabled){
+        
+        init.portf <- add.objective(init.portf, type="risk", 
+                                    
+                                    name=input$risk_name, 
+                                    
+                                    risk_aversion=input$risk_aversion,
+                                    
+                                    arguments=list(p=input$risk_p))
+        
+      }
+      
+      if(input$risk_budget_enabled){
+        
+        init.portf <- add.objective(init.portf, type="risk_budget", 
+                                    
+                                    name=input$risk_budget_name,
+                                    
+                                    arguments=list(p=input$risk_budget_p),
+                                    
+                                    min_prisk=input$prisk[1],
+                                    
+                                    max_prisk=input$prisk[2],
+                                    
+                                    min_concentration=input$min_concentration)
+        
+      }
+      
+      init.portf
       
     })
     
-    names(params) <- paramNames
+  })
+  
+  
+  
+  opt <- reactive({
     
-    params
+    input$goButton
     
+    isolate({
+      
+      optimize.portfolio(R=data(), portfolio=portf(), 
+                         
+                         optimize_method=input$optimize_method, 
+                         
+                         search_size=input$search_size, trace=TRUE)
+      
+    })
+    
+  })
+  
+  
+  
+  output$portfolio <- renderPrint({
+   
+    print(portf())
+    
+  })
+  
+  
+  
+  output$optimization <- renderPrint({
+    
+    
+    print(opt())
+    
+  })
+  
+  
+  
+  output$chart.RiskReward <- renderPlot({
+    
+    input$goButton
+    
+    
+    isolate({
+      
+      if(input$risk_enabled){
+        
+        risk_col <- input$risk_name
+        
+      } else if(input$risk_budget_enabled){
+        
+        risk_col <- input$risk_budget_name
+        
+      } else {
+        
+        risk_col <- "StdDev"
+        
+      }
+      
+      chart.RiskReward(opt(), return.col= input$return_name, risk.col=risk_col, 
+                       
+                       chart.assets=TRUE, main="Optimization")
+      
+    })
+    
+  })
+  
+  
+  
+  output$chart.Weights <- renderPlot({
+    
+    chart.Weights(opt(), main="Optimal Weights")
+    
+  })
+  
+  
+  
+  output$chart.RiskBudget <- renderPlot({
+   
+    input$goButton
+    
+    isolate({
+      
+      if(input$risk_budget_enabled){
+        
+        chart.RiskBudget(opt(), neighbors=10, risk.type="percentage", 
+                         
+                         main="Risk Budget", match.col=input$risk_budget_name)
+        mtext("y=1/x", side=3, line=3, cex.lab=1,las=2, col="blue")
+        
+      }
+      
+    })
+    
+  })
+  
+  
+  
+  # Show all available data
+  output$performanceSummary <- renderPlot({
+    
+    input$goButton
+    isolate({
+  returns_robot <- Return.portfolio(R = data(), weights = extractWeights(opt()))
+  returns_robot <- cbind(returns_robot, data())
+    charts.PerformanceSummary(returns_robot, main = "Performance Summary",
+                              legend.loc = "topleft", wealth.index=TRUE)
+ 
+  })
+  })
   }
-  
-  
-  
-  # Function that generates scenarios and computes NAV. The expression
-  
-  # is wrapped in a call to reactive to indicate that:
-  
-  #
-  
-  #  1) It is "reactive" and therefore should be automatically
-  
-  #     re-executed when inputs change
-  
-  #
-  
-  navA <- reactive(do.call(simulate_nav, getParams("a")))
-  
-  navB <- reactive(do.call(simulate_nav, getParams("b")))
-  
-  
-  
-  # Expression that plot NAV paths. The expression
-  
-  # is wrapped in a call to renderPlot to indicate that:
-  
-  #
-  
-  #  1) It is "reactive" and therefore should be automatically
-  
-  #     re-executed when inputs change
-  
-  #  2) Its output type is a plot
-  
-  #
-  
-  output$a_distPlot <- renderPlot({
-    
-    plot_nav(navA())
-    
-  })
-  
-  output$b_distPlot <- renderPlot({
-    
-    plot_nav(navB())
-    
-  })
-  
-  
-  
-}
+
+
+
+
